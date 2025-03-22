@@ -9,7 +9,7 @@ app.config['SECRET_KEY'] = 'your-secret-key'
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 # 數據文件路徑
-TODOS_FILE = os.path.join(os.environ.get('RENDER_DATA_DIR', '.'), 'todos.json')
+TODOS_FILE = 'todos.json'
 
 # 加載待辦事項
 def load_todos():
