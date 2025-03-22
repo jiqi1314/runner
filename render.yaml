@@ -5,9 +5,16 @@ services:
     buildCommand: |
       python -m pip install --upgrade pip
       pip install -r requirements.txt
-    startCommand: python app.py
+      pip install gunicorn
+    startCommand: gunicorn --worker-class eventlet -w 1 -b 0.0.0.0:$PORT app:app
     envVars:
       - key: PORT
         value: 10000
       - key: PYTHON_VERSION
         value: 3.9.0
+      - key: SECRET_KEY
+        generateValue: true
+    disk:
+      name: data
+      mountPath: /opt/render/project/data
+      sizeGB: 1
