@@ -3,56 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>待辦事項</title>
+    <title>待辦事項清單</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Arial', sans-serif;
             max-width: 800px;
             margin: 0 auto;
             padding: 20px;
             background-color: #f5f5f5;
         }
         h1 {
-            text-align: center;
             color: #333;
+            text-align: center;
         }
         .input-container {
             display: flex;
             margin-bottom: 20px;
         }
-        #new-todo {
+        #todo-input {
             flex: 1;
             padding: 10px;
             font-size: 16px;
             border: 1px solid #ddd;
             border-radius: 4px 0 0 4px;
         }
-        button {
+        #add-button {
             padding: 10px 15px;
             background-color: #4CAF50;
             color: white;
             border: none;
+            border-radius: 0 4px 4px 0;
             cursor: pointer;
             font-size: 16px;
         }
-        #add-btn {
-            border-radius: 0 4px 4px 0;
+        #add-button:hover {
+            background-color: #45a049;
         }
-        #reset-btn {
-            background-color: #f44336;
-            margin-left: 10px;
-            border-radius: 4px;
-        }
-        ul {
+        #todo-list {
             list-style-type: none;
             padding: 0;
         }
-        li {
+        .todo-item {
             background-color: white;
             padding: 15px;
             margin-bottom: 10px;
             border-radius: 4px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             display: flex;
             align-items: center;
         }
@@ -68,35 +64,54 @@
             width: 20px;
             height: 20px;
         }
-        .remark-container {
+        .todo-remark {
             margin-top: 5px;
-            display: flex;
-            align-items: center;
+            font-size: 14px;
+            color: #666;
+            font-style: italic;
         }
         .remark-input {
-            flex: 1;
+            width: 100%;
             padding: 5px;
+            margin-top: 5px;
             border: 1px solid #ddd;
             border-radius: 4px;
-            margin-right: 5px;
         }
         .completed-time {
             font-size: 12px;
-            color: #888;
+            color: #999;
             margin-top: 5px;
+        }
+        .controls {
+            margin-top: 20px;
+            text-align: center;
+        }
+        #reset-button {
+            padding: 8px 15px;
+            background-color: #f44336;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        #reset-button:hover {
+            background-color: #d32f2f;
         }
     </style>
 </head>
 <body>
-    <h1>待辦事項</h1>
+    <h1>待辦事項清單</h1>
     
     <div class="input-container">
-        <input type="text" id="new-todo" placeholder="添加新的待辦事項...">
-        <button id="add-btn">添加</button>
-        <button id="reset-btn">重置</button>
+        <input type="text" id="todo-input" placeholder="輸入新的待辦事項...">
+        <button id="add-button">添加</button>
     </div>
     
     <ul id="todo-list"></ul>
+    
+    <div class="controls">
+        <button id="reset-button">重置所有待辦事項</button>
+    </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <script>
@@ -104,58 +119,63 @@
         const socket = io();
         
         // DOM元素
-        const newTodoInput = document.getElementById('new-todo');
-        const addBtn = document.getElementById('add-btn');
-        const resetBtn = document.getElementById('reset-btn');
+        const todoInput = document.getElementById('todo-input');
+        const addButton = document.getElementById('add-button');
         const todoList = document.getElementById('todo-list');
+        const resetButton = document.getElementById('reset-button');
         
-        // 初始化待辦事項列表
-        socket.on('init-todos', (todos) => {
-            renderTodos(todos);
+        // 待辦事項列表
+        let todos = [];
+        
+        // 初始化待辦事項
+        socket.on('init-todos', (initialTodos) => {
+            todos = initialTodos;
+            renderTodos();
         });
         
         // 待辦事項更新
-        socket.on('todos-updated', (todos) => {
-            renderTodos(todos);
+        socket.on('todos-updated', (updatedTodos) => {
+            todos = updatedTodos;
+            renderTodos();
         });
         
-        // 添加新待辦事項
-        addBtn.addEventListener('click', () => {
-            const text = newTodoInput.value.trim();
+        // 添加待辦事項
+        addButton.addEventListener('click', () => {
+            const text = todoInput.value.trim();
             if (text) {
-                const todo = {
+                const newTodo = {
                     text: text,
                     completed: false,
                     completedAt: null,
                     remark: ''
                 };
-                socket.emit('add-todo', todo);
-                newTodoInput.value = '';
+                socket.emit('add-todo', newTodo);
+                todoInput.value = '';
             }
         });
         
-        // 按Enter鍵添加
-        newTodoInput.addEventListener('keypress', (e) => {
+        // 按Enter鍵添加待辦事項
+        todoInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
-                addBtn.click();
+                addButton.click();
             }
         });
         
         // 重置所有待辦事項
-        resetBtn.addEventListener('click', () => {
+        resetButton.addEventListener('click', () => {
             if (confirm('確定要重置所有待辦事項嗎？')) {
                 socket.emit('reset-todos');
             }
         });
         
         // 渲染待辦事項列表
-        function renderTodos(todos) {
+        function renderTodos() {
             todoList.innerHTML = '';
             
             todos.forEach((todo, index) => {
                 const li = document.createElement('li');
+                li.className = 'todo-item';
                 
-                // 複選框
                 const checkbox = document.createElement('input');
                 checkbox.type = 'checkbox';
                 checkbox.className = 'todo-checkbox';
@@ -169,43 +189,43 @@
                     });
                 });
                 
-                // 待辦事項文本
-                const textSpan = document.createElement('span');
-                textSpan.className = 'todo-text' + (todo.completed ? ' completed' : '');
-                textSpan.textContent = todo.text;
+                const textDiv = document.createElement('div');
+                textDiv.className = 'todo-text' + (todo.completed ? ' completed' : '');
+                textDiv.textContent = todo.text;
                 
-                // 完成時間
-                const timeDiv = document.createElement('div');
-                timeDiv.className = 'completed-time';
-                if (todo.completed && todo.completedAt) {
-                    const completedDate = new Date(todo.completedAt);
-                    timeDiv.textContent = `完成於: ${completedDate.toLocaleString()}`;
-                }
+                const remarkDiv = document.createElement('div');
+                remarkDiv.className = 'todo-remark';
                 
-                // 備註容器
-                const remarkContainer = document.createElement('div');
-                remarkContainer.className = 'remark-container';
-                
-                // 備註輸入框
                 const remarkInput = document.createElement('input');
                 remarkInput.type = 'text';
                 remarkInput.className = 'remark-input';
                 remarkInput.placeholder = '添加備註...';
                 remarkInput.value = todo.remark || '';
-                remarkInput.addEventListener('change', () => {
+                remarkInput.addEventListener('blur', () => {
                     socket.emit('update-remark', {
                         index: index,
                         remark: remarkInput.value
                     });
                 });
+                remarkInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        remarkInput.blur();
+                    }
+                });
                 
-                // 組合元素
-                remarkContainer.appendChild(remarkInput);
+                remarkDiv.appendChild(remarkInput);
+                
+                if (todo.completed && todo.completedAt) {
+                    const completedTimeDiv = document.createElement('div');
+                    completedTimeDiv.className = 'completed-time';
+                    const completedDate = new Date(todo.completedAt);
+                    completedTimeDiv.textContent = `完成於: ${completedDate.toLocaleString()}`;
+                    remarkDiv.appendChild(completedTimeDiv);
+                }
                 
                 li.appendChild(checkbox);
-                li.appendChild(textSpan);
-                li.appendChild(timeDiv);
-                li.appendChild(remarkContainer);
+                li.appendChild(textDiv);
+                li.appendChild(remarkDiv);
                 
                 todoList.appendChild(li);
             });
